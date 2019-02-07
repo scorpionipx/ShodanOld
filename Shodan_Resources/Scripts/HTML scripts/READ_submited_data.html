@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shodan ~Scorpion Software~</title>
+</head>
+<style>
+.signature
+{ 
+	text-indent:160px;
+	color:#484848 ;
+}
+</style>
+<body bgcolor = grey>
+<table style="width:35%">
+<tr>
+<td>
+<img src = "maxresdefault.jpg" height = "150" width = "400">
+</tr>
+</td>
+<tr>
+<td>
+<table style="width:35%">
+  <tr>
+    <td><form action="http://www.scorpionipx.comze.com/mainpage.html"><input type="submit" value="Back to remote control"></form></td>
+  </tr>
+</table>
+</td>
+</tr>
+</table>
+<?php
+$myfile = fopen("RS_submited_data_string.html", "r") or die("Unable to open file!");
+echo fread($myfile);
+fclose($myfile);
+flush();
+?>
+<p class="signature">	Powered by ScorpionIPX</p>
+</body>
+</html>		

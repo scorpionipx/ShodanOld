@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<?php
+ 
+	// Open the text file
+	$f = fopen("ready_for_new_commands.html", "w");
+ 
+	// Write text line
+	fwrite($f, "<html>
+<body>
+<p>no</P>
+</body>
+</html>"); 
+ 
+	// Close the text file
+	fclose($f);
+ 
+	?>
+<button type="button" onclick=change_value()>Click Me!</button>
+<p id="new_command" >false</p>
+</body>
+</html> 

@@ -1,0 +1,132 @@
+ [ESC] 9G
+YO
+BUN DEDown
+VII AFARA [shift] /
+WA
+VII AFARA [shift] /
+HAI LA BRA [backspace]  [backspace] AR IN FATA
+EU IES ACU, [backspace] M
+MA SUNI
+K
+
+ [ESC]  [shift]  [ctrl] 
+DANUT
+
+F [backspace] RADIO SURE
+LWinCOVRT [backspace] E [backspace]  [backspace] ERVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUp [shift]  [ESC]  [ctrl] 
+LMenuVolumeDownVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpVolumeUpF1SLWinDownF
+DownDownDownUpGOOGLE.RO
+  LWinLWinDXDIAG
+
+RLWinDXDIAG
+LWinSSOLITAIRE [backspace] GAMESF4LMenuCD\
+CD U [shift] SERS\D [shift] AN\D [shift] ESKTOP
+MD G [shift] UNOI
+CD  [shift] GUNOI
+MD G [shift] UNOI1 G [shift] UNOI2 G [shift] UNOI2 [backspace] 3
+LMenu
+VolumeDownVolumeDownVolumeDownVolumeUpABIA ACUM AM AJUN [backspace] YO [shift] 
+D [shift] ACA INVETI C [shift] == [shift] , PE URMA INTELEGI ORICE LIMBAJ CU USURINTA1 [shift]  ;0 [shift] 
+GETS [shift] -PUTSA [ctrl] 3 [shift] INCL
+, [shift] STDIO
+ [shift] . [shift] 
+INT MAIN9 [shift] VOID [shift] 0
+OemOpenBrackets [shift] 
+STRING PRO [backspace]  [backspace] CHAR PROPOZITIEOemOpenBrackets100Right;PRINT
+'I [shift] NTRODUCETI O PROPOZITIE1 [shift] \N;F9
+GETS9 [shift] PRO
+Right; [shift] ANA ARE BMW [shift] .
+
+
+PUTS9 [shift] PRPRO
+Right;A [shift] R [backspace] NA ARE BMW [shift] .
+
+/**/LeftLeft
+PRO [backspace]  [backspace]  [backspace] 
+PRINT
+'P [shift] ORPOZITIA C [backspace] INTRODUSA ESTE; [shift] N\RightRight;A [shift] FISARE CU PUTS [backspace]  [backspace]  [backspace] ;
+/**/LeftLeftC [shift] ITIRE CU GETSN [shift] ICUSOR CARUCIOR.
+VolumeDownVolumeUpVolumeUpVolumeDownVolumeDownGETCH- [shift] PUTCHA [ctrl] 3 [shift] INC
+ [shift] ,STD
+ [backspace]  [backspace]  [backspace]  [backspace] DIO
+. [shift] 
+INT MAIN9 [shift] VOIDRight
+OemOpenBrackets [shift] CHAR G [backspace] C1,C2,C2 [backspace] 3,C4,C5;Right  RightRightRight RightRightRight RightRightRight 
+/**/LeftLeftCITIRE CU GETCH
+C1= [backspace]  = GETDown
+;
+FFLU
+STDINRight;F
+ [ESC]  [backspace]  [backspace] F
+C [ctrl] 
+V [ctrl] 
+ [ctrl] V
+ [ctrl] V
+ [ctrl] V [backspace] 2DownDown [backspace] 3Down [backspace]  [backspace] Z [ctrl] Down [backspace] 4DownDown [backspace] 5ARARARARARH
+G
+D
+A
+S
+
+
+PRINT
+'I [shift] NTRODUCETI 5 CARACTERE1 [shift] \N;
+PRI
+' [shift] C1=RightRight;C [ctrl] C [ctrl] V [ctrl] V [ctrl] V [ctrl] V [ctrl]  [backspace] 2 [backspace] 3DownDownDown [backspace] 4DownDownDown [backspace] 5Q
+W
+E
+R
+T
+
+C1=GET [backspace]  [backspace]  [backspace]  [backspace]  [backspace]  [backspace] HAR
+PRI
+'C [shift] ARACTERELE CITITE SUNT; [shift] \NRightRight;
+/**/LeftLeftAFISARE CU PUTCHARAR
+PUTDown
+C1;C [ctrl] 
+V [ctrl]  [backspace] 2Q
+W
+E
+R
+T
+C [ctrl] 
+V [ctrl] 
+ [ctrl] V
+ [ctrl] V [backspace] 3Down [backspace] 4Down [backspace] 5
+PRIN
+' [shift] \NRightRight;C [ctrl] V [ctrl] V [ctrl] V [ctrl] Q
+W
+E
+R
+T
+ABIA ACUM AM AJUNS AS [backspace] CASA ; [shift] D
+IMEDIAT MA APUC SA FAC ALEA
+ [shift] GETCHAR-PUTCHAR [shift] 
+GETS-PUTS [shift] 
+SPER CA SUNT DE FOLOS ;0 [shift] 
+HEY
+CUM MERGE CU INVATATUL/ [shift] 
+PFFF ;0 [shift]  A [backspace] TE-AS AJUTA SI ACOLO, DAR LA / [backspace]  [backspace]  [backspace] MS [shift]  SUNT PALETA ;00 [shift] 
+NU AM SOMN
+INVAT ; [shift] D
+R [shift] OXANA M-A INTREBAT DE NISTE CHESTII LA PCLP
+MA GANDEAM CA DACA AI NEVOIE DE CEVA SA TE AJUT
+CA ACUM NU MAI SUNT I [backspace] AFARA
+AM AJUNS IN CASA ;D [shift] 
+PFFF ;00 [shift] 
+E BUN ATUNCI
+O SA IEI 10
+;D [shift] 
+;000 [shift] 
+NU STIU CU CE MEDIE
+SI DA
+AM MAI INVATAT PROGRAMARE
+CHIAR AM SA II ARAT UN PROGRAM SMECHER
+A [backspace] DAR SA AJUNG IN IASI
+CA SA IL FAC SI MAI FAIN
+SUPER
+PE CE POST
+IOAHAM
+ABIA ASTEPT SA VB CU EL
+MUNCESC DIN GREU =00 [shift] 
+CE IMPRESIE AM LASAT SI EU... ; [shift] D

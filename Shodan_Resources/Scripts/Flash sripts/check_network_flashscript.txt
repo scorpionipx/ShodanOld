@@ -1,0 +1,31 @@
+stop();
+import air.net.URLMonitor;
+import flash.net.URLRequest;
+import flash.events.StatusEvent;
+
+var monitor:URLMonitor;
+
+function checkInternetConnection(e:Event = null):void
+{
+var url:URLRequest = new URLRequest("http://www.google.com");
+url.method = "HEAD";
+monitor = new URLMonitor(url);
+monitor.pollInterval = 1000;
+//
+monitor.addEventListener(StatusEvent.STATUS, checkHTTP);
+//
+function checkHTTP(e:Event = null):void
+{
+if (monitor.available) {
+
+       trace("Network available"); 
+
+   } else {
+
+       trace("Network unavailable");
+
+   }
+}
+monitor.start();
+}
+checkInternetConnection();

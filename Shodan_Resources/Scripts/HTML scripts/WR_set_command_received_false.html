@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<?php
+$myfile = fopen("RS_command_received.html", "w") or die("Unable to open file!");
+$txt = "<!DOCTYPE html>
+<html>
+<body>
+<p>0</P>
+</body>
+</html>";
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+ <p>Value set to false!</p>
+</body>
+</html> 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<form method="post" action="<?php echo $_SERVER['PHP_SELF'];?>">
+   Message: <input type="text" name="submited_data">
+   <input type="submit">
+</form>
+
+<?php
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+     // collect value of input field
+     $name = $_REQUEST['submited_data']; 
+     if (empty($name)) {
+         echo "Message is empty!";
+     } else {
+         $myfile = fopen("RS_submited_data_string.html", "w") or die("Unable to open file!");
+		$txt = $name;
+		fwrite($myfile, $txt);
+		fclose($myfile);
+       echo "Message has been send! Redirecting to main page!";
+       sleep(1);
+       header( "Location: http://www.scorpionipx.comze.com/WR_set_command_received_true.html" );
+     }
+}
+?>
+
+</body>
+</html>			

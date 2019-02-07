@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Shodan>
+  <Data>
+    <Password>defaultxyz123</Password>
+    <Restart>false</Restart>
+    <Username>Dan</Username>
+  </Data>
+</Shodan>

@@ -1,0 +1,53 @@
+First log session
+
+Date: 28-09-2015
+Time: [01:59:07]
+Commands log:
+ Application closed.                                     [28-09-2015][01:59:17]
+
+================================================================================
+
+New log session
+
+Date: 07-02-2019
+Time: [19:23:33]
+User: User
+Commands log:
+ Showing commands pannel...                                          [19:23:47]
+ Accessing advanced commands...                                      [19:23:52]
+ Getting location protocol engaged.                                  [19:23:57]
+
+================================================================================
+
+New log session
+
+Date: 07-02-2019
+Time: [19:24:33]
+User: User
+Commands log:
+ Showing commands pannel...                                          [19:24:38]
+ Telling time...                                                     [19:24:45]
+ Accessing advanced commands...                                      [19:24:52]
+ Getting IP protocol engaged.                                        [19:24:57]
+ Application closed by force.                                        [19:24:59]
+
+================================================================================
+
+New log session
+
+Date: 07-02-2019
+Time: [19:25:01]
+User: User
+Commands log:
+ Showing commands pannel...                                          [19:25:07]
+ Opening textbox...                                                  [19:25:12]
+ Reading whole text...                                               [19:25:23]
+ Initiating crypting protocol...                                     [19:25:32]
+ Encrypting text finished successfully.                              [19:25:32]
+ Initiating decrypting protocol...                                   [19:25:37]
+ Decrypting text finished successfully.                              [19:25:37]
+ Accessing basic commands...                                         [19:25:46]
+ Assigning password protocol engaged.                                [19:31:56]
+ Canceling password assign protocol...                               [19:32:03]
+ Accessing basic commands...                                         [19:32:08]
+ Accessing machine commands...                                       [19:32:18]

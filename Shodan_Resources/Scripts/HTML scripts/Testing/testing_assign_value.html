@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+<input type="text" name="idtest" value="<?php echo htmlspecialchars($name); ?>" />
+<button onclick="myFunction()">Input</button>
+<script>
+var x;
+function myFunction() 
+{
+<?php
+$myfile = fopen("RS_reply_to_read.html", "w") or die("Unable to open file!");
+$txt = $name;
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+}
+</script>
+</body>
+</html>

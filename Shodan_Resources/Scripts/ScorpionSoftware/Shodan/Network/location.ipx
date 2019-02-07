@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>My Location</title>
+	<meta name="msvalidate.01" content="D5D91A439DD2754A4CD969318549EF6E" />
+	<meta name="google-site-verification" content="hfPJh9PT_5fMPZkU_LeqNTlze68m2wKBrD173pTGImE" />
+	<meta charset="utf-8">
+	<meta name="description" content="Your location as seen from the Internet using your IP address and the new HTML5 geolocation feature.">
+	<meta name="viewport" content="width=device-width">
+	<link rel="icon" href="images/mylocation_org/favicon.png" type="image/x-icon">
+	<link rel="shortcut icon" href="images/mylocation_org/favicon.png" type="image/x-icon">
+	<meta property="og:site_name" content="My Location">
+	<meta property="og:title" content="My Location">
+	<meta property="og:description" content="Your location as seen from the Internet using your IP address and the new HTML5 geolocation feature.">
+	<meta property="og:image" content="https://mylocation.org/images/mylocation_org/icon.png">
+	<link href="css/hot-sneaks/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" type="text/css">
+	<link href="css/mylocation_org.css" rel="stylesheet" type="text/css">
+	<script type="text/javascript" src="common/js/jquery-1.8.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui-1.10.3.custom.min.js"></script>
+	<script type="text/javascript" src="js/geoPosition.min.js"></script>
+	<script type="text/javascript" src="common/js/common.min.js"></script>
+        <link href="css/leaflet.css" rel="stylesheet" type="text/css">
+        <script src="js/leaflet.js"></script>
+	<script type="text/javascript" src="js/main.js?2"></script>
+	<link rel="stylesheet" type="text/css" href="/common/css/cookieconsent.min.css">
+	<script src="/common/js/cookieconsent.min.js"></script>
+	<script type="text/javascript">
+        	$(document).ready(function() {
+            		window.cookieconsent.initialise({
+                		"palette": {
+                    			"popup": {
+                        			"background": "#000000",
+                        			"text": "#ffffff"
+                    			},
+                    			"button": {
+                        			"background": "#8ec760",
+                        			"text": "#ffffff"
+                    			}
+                		},
+                		// "theme": "edgeless",
+                		"content": {
+                    			"message": "Google collects data and uses cookies for ad personalization and measurement for this site. <a class='cc-link' target='_blank' href='https://policies.google.com/technologies/partner-sites'>Learn how Google collects and uses data.</a> By using this site, you consent to our use of cookies. You can turn off ad personalization at any time in your Google account settings."
+                		}
+            		});
+		});
+	</script>
+</head>
+<body>
+	<div id="wrapper">
+		<div id="header-wrapper">
+			<div id="header-text">
+				<a href="/"><h1>My Location</h1></a>
+				<p>Your Location As Seen From the Internet</p>
+			</div>
+		</div>
+
+		<div id="desc">
+			<p>There are many ways to figure out where you are â€” your IP address, your wireless network connection, which cell tower your device is connected to, built-in GPS hardware. This page aims to show your physical location as it seen by websites over the Internet when you use this particular browsing environment.</p> <p>If you need to hide your location from websites, try <a href="http://hidemyass.com/vpn/r12196:5/">HideMyAss VPN</a>. 61000+ IP addresses in 63 countries.</p>
+		</div>
+
+		<div style="margin: 25px auto; max-width: 728px; max-height: 100px; overflow: hidden;">
+
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- mylocation-top-responsive -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8708471661558831"
+     data-ad-slot="9396296306"
+     data-ad-format="auto"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+		</div>
+
+		<div id="accordion">
+			
+			<h3>Public IP Address: 81.180.209.86</h3>
+<div>
+	<div class="panel-wrapper">      
+		<div class="info" title="81.180.209.86">
+			<table>
+				<tr>
+					<td>IP Address</td>
+					<td><b>81.180.209.86</b></td>
+				</tr>
+				<tr>
+					<td>Latitude</td>
+					<td>47.1667</td>
+				</tr>
+				<tr>
+					<td>Longitude</td>
+					<td>27.6000</td>
+				</tr>
+				<tr>
+					<td>Country</td>
+					<td>Romania</td>
+				</tr>
+				<tr>
+					<td>Region</td>
+					<td>Iasi</td>
+				</tr>
+				<tr>
+					<td>City</td>
+    				<td>Iasi</td>
+				</tr>
+				<tr>
+					<td>Organization</td>
+					<td>Institutul National de Cercetare-Dezvoltare in inf</td>
+				</tr>
+			</table>
+		</div>
+		<div class="map" id="map-0" title="47.1667, 27.6000"></div>
+	</div>
+</div>
+
+			
+			<h3>Browser Geolocation</h3>
+			<div id="geo-div">
+				<div class="panel-wrapper">
+					<div class="info">
+						<p>Browser geolocation test detects your location using a built in geolocation feature.</p> <p>Geolocation support is opt-in. You should see a pop-up requesting authorization to share your location. Please select Share/Allow to continue.</p> <p>This may take a few seconds...</p>
+						<table>
+							<tr>
+								<td>Latitude</td>
+								<td id="geo-latitude">?</td>
+							</tr>
+							<tr>
+								<td>Longitude</td>
+								<td id="geo-longitude">?</td>
+							</tr>
+						</table>
+						<button id="geo-test">Start Test</button>
+					</div>
+					<div class="map" id="map-geo"></div>
+				</div>
+			</div>
+
+			<h3>How to hide my location from websites?</h3>
+			<div>
+				<div class="panel-wrapper">
+					<div class="info">
+						<p>How to hide my location from websites?</p>
+						<table>
+							<tr>
+								<td>Extensive geographic coverage.</td>
+							</tr>
+							<tr>
+								<td>One price gets you access to all 514 servers.</td>
+							</tr>
+							<tr>
+								<td>Multiple protocols to use.</td>
+							</tr>
+							<tr>
+								<td>No bandwidth limitations.</td>
+							</tr>
+						</table>
+						<button id="vpn-link" data-href="https://hide.me/?friend=blackswan">Read More</button>
+					</div>
+					<div class="pic"></div>
+				</div>
+			</div>
+		
+		</div>
+
+		<div id="footer">
+   			<div style="margin: 25px auto; max-width: 728px; width: 95%; overflow: hidden;">
+
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- mylocation-bottom-links -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8708471661558831"
+     data-ad-slot="7640361501"
+     data-ad-format="link"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+			</div>
+			<div id="copy">&copy; 2013-2019 mylocation.org</div>
+		</div>
+	</div>
+	<div id="flash-div"></div>
+
+<!-- Matomo -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://stats.monohost.com/";
+    _paq.push(['setTrackerUrl', u+'piwik.php']);
+    _paq.push(['setSiteId', '9']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+</body>
+</html>

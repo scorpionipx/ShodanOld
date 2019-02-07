@@ -1,0 +1,38 @@
+stop();
+var ldr:URLLoader = new URLLoader();
+ldr.addEventListener(HTTPStatusEvent.HTTP_STATUS, ldrStatus);
+
+var url:String = "http://www.scorpionipx.comze.com/WR_set_command_received_false.html";
+var limit:int = 10;
+
+var time_start:Number;
+var time_stop:Number;
+var times:int;
+
+ping();
+
+function ping():void
+{
+    trace("pinging", url);
+
+    times = 0;
+    doThePing();
+}
+
+function doThePing():void
+{
+    time_start = getTimer();
+    ldr.load(new URLRequest(url));
+}
+
+function ldrStatus(evt:*):void
+{
+    if(evt.status == 200)
+    {
+        time_stop = getTimer();
+        trace("got response in", time_stop - time_start, "ms");
+    }
+
+    times++;
+    if(times < limit) doThePing();
+}

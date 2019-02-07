@@ -1,0 +1,2616 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using System.Speech.Recognition;
+using System.Speech.Synthesis;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using Microsoft.Win32;
+using System.Net;
+
+namespace WindowsFormsApplication1
+{
+    public partial class Form1 : Form
+    {
+        /*RUN AT STARTUP*/
+        private void RegisterInStartup(bool isChecked)
+        {
+            RegistryKey registryKey = Registry.CurrentUser.OpenSubKey
+                    ("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+            if (isChecked)
+            {
+                registryKey.SetValue("ApplicationName", Application.ExecutablePath);
+            }
+            else
+            {
+                registryKey.DeleteValue("ApplicationName");
+            }
+        }
+        /*RUN AT STARTUP*/
+        /*open CD tray*/
+        public class CDTray
+        {
+            [DllImport("winmm.dll", EntryPoint = "mciSendStringA")]
+            public static extern void mciSendStringA(string lpstrCommand, string lpstrReturnString, Int32 uReturnLength, Int32 hwndCallback);
+            public static void SendCDCommand(string command)
+            {
+                string rt = "";
+                mciSendStringA(command, rt, 127, 0);
+            }
+        }
+        /*open CD tray*/
+
+        public class PopupWindow : System.Windows.Forms.ToolStripDropDown
+        {
+            private System.Windows.Forms.Control _content;
+            private System.Windows.Forms.ToolStripControlHost _host;
+
+            public PopupWindow(System.Windows.Forms.Control content)
+            {
+                //Basic setup...
+                this.AutoSize = false;
+                this.DoubleBuffered = true;
+                this.ResizeRedraw = true;
+
+                this._content = content;
+                this._host = new System.Windows.Forms.ToolStripControlHost(content);
+
+                //Positioning and Sizing
+                this.MinimumSize = content.MinimumSize;
+                this.MaximumSize = content.Size;
+                this.Size = content.Size;
+                content.Location = Point.Empty;
+
+                //Add the host to the list
+                this.Items.Add(this._host);
+            }
+        }
+
+        /*MONITOR CONTROL*/
+        private int SC_MONITORPOWER = 0xF170;
+        private uint WM_SYSCOMMAND = 0x0112;
+        [DllImport("user32.dll")]
+        static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+        enum MonitorState
+        {
+            ON = -1,
+            OFF = 2,
+            STANDBY = 1
+        }
+        private void SetMonitorState(MonitorState state)
+        {
+            Form frm = new Form();
+            SendMessage(frm.Handle, WM_SYSCOMMAND, (IntPtr)SC_MONITORPOWER, (IntPtr)state);
+        }
+        /*FUNCTIILE: SetMonitorState(MonitorState.ON); SetMonitorState(MonitorState.OFF);*/
+        /*MONITOR CONTROL*/
+
+        /*VARIABLES*/
+
+        /*CMD*/
+        System.Diagnostics.Process process = new System.Diagnostics.Process();
+        System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+        /*CMD*/
+
+        SpeechRecognitionEngine sr = new SpeechRecognitionEngine();
+        SpeechSynthesizer replica = new SpeechSynthesizer();
+        PromptBuilder pb = new PromptBuilder();
+       
+        /*GRAMMARS*/
+        Grammar GB_BasicCommands_Grammar;
+        Grammar GB_AdvancedCommands_Grammar;
+        Grammar GB_TextBoxCommands_Grammar;
+        Grammar GB_GamesCommands_Grammar;
+        Grammar GB_SecurityCommands_Grammar;
+        Grammar GB_NotListening_Grammar;
+        Grammar GB_Settings_Grammar;
+        Grammar GB_String_Grammar;
+        /*GRAMMARS*/
+
+        Random rnd = new Random();
+        /*int month = rnd.Next(1, 13); creates a number between 1 and 12*/
+
+        /*COMMANDS STRINGS*/
+        string[] basiccommands = new string[] { "Show commands pannel", "Hide commands pannel", "Advanced commands", "Redemption", "Show textbox", "Open disc tray", "Clean the log", "Stop listening", "Listen again", "Show the time", "Under the hood", "Take a break" };
+        string[] advancedcommands = new string[] {"Show commands pannel", "Hide commands pannel", "Basic commands", "Show networks", "Get my location"};
+        string[] textboxcommands = new string[] { "Show commands pannel", "Hide commands pannel", "Basic commands","Read it all",  "Read selected", "Clear content", "Clear selected",  "Hide textbox"};
+        string[] gamescommands = new string[] { "Tetris"};
+        string[] securitycommands = new string[] { "Show commands pannel", "Hide commands pannel", "Basic commands", "Basic locker", "Advanced locker", "Disable locker"};
+        string[] notlisteningcommands = new string[] { "Show commands pannel", "Hide commands pannel", "Listen again", "Take a break" };
+        string[] settingscommands = new string[] { "Show commands pannel", "Hide commands pannel", "Basic commands", "Enable reply", "Disable reply", "Change username", "Change password", "Show the log", "Shutdown timer" };
+        string[] stringcommands = new string[] { "Show commands pannel", "Hide commands pannel", "Input string", "Abord operation" };
+        /*COMMANDS STRINGS*/
+
+        /*REPLY STRINGS*/
+        string[] errorreply = new string[] { "Incorrect use of the command.", "Command is unavailable.", "Unauthorized use of the command.", "The command is not available at this stage.", "Use of this command is prohibited at this moment.", "Invalid operation." };
+        string[] quickresponse = new string[] { "Yes.", "What is it?", "I'm here.", "I'm listening" };
+        string[] byereply = new string[] { "See you later.", "Good bye.", "Take care.", "Until next time.", "Turning off. Bye." };
+        string[] readyreply = new string[] {"What's the first task?", "I'm locked and loaded", "I'm ready to work.", "What you want me to do?", "Waiting for your command."};
+        /*REPLY STRINGS*/
+
+        Boolean firsttime = false;
+        Boolean listening = true;
+        Boolean forcedclosed = true;
+        Boolean button_enabled = true;
+        Boolean speaking_enableb = true;
+        Boolean button_visible = false;
+        int shodan_state = 0;
+        int lock_state;
+        int restart;
+        string username;
+        string password;
+        string input_method = "username";
+        /*VARIABLES*/
+
+        public Form1()
+        {
+            /*RegisterInStartup(true);/*STARTUP RUN*//*EROARE LA IF FILE EXISTS*/
+            replica.SelectVoiceByHints(VoiceGender.Female, VoiceAge.Senior);
+            InitializeComponent();
+            if (!Directory.Exists("Shodan"))
+            {
+                firsttime = true;
+                listening = false;
+                button14.Visible = false;
+                sr.RecognizeAsyncStop();
+                pb.AppendText("It seemns this is the first time you are using the Shodan Software. Allow me to generate necessary files for my algorithms.");
+                replica.Speak(pb);
+                pb.ClearContent();
+                create_Shodan_Directories();
+                create_Shodan_Files();
+                pb.AppendText(" I have created a folder named Shodan in current location. There I will hold all information required. Algorithms fully loaded. Let's get started. First, input a username.");
+                replica.Speak(pb);
+                pb.ClearContent();
+            }
+            if (check_IfFileIsEmpty(@"Shodan\Security\lock.ipx"))
+            {
+                write_ToFile(@"Shodan\Security\lock.ipx", "0");
+            }
+            read_Lock_State();
+            if (check_IfFileIsEmpty(@"Shodan\Security\security.ipx"))
+            {
+                write_ToFile(@"Shodan\Security\security.ipx", "0");
+            }
+            read_Restart_State();
+            button14.Text = "Buttons";
+            button2.Text = "Show CP";
+            button3.Text = "Hide CP";
+            buttons_Basic_ButtonsText();
+            all_Buttons_Invisible();
+            if (!firsttime)
+            {
+                read_Username();
+            }
+        }
+
+       
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            richTextBox1.Visible = false;
+            richTextBox2.Visible = false;
+            textBox1.Visible = false;
+            button1.Visible = false;
+            button15.Visible = false;
+            button16.Visible = false;
+            textBox2.Visible = false;
+            webBrowser1.Visible = false;
+            load_BasicCommands_List();
+            initialize_Grammar();
+            start_Timer1();
+            advanced_Locker_PostRestart();
+            if (firsttime)
+            {
+                change_Username();
+            }
+            else
+            {
+                if (restart == 0)
+                {
+                    hello_Function();
+                }
+            }
+            log_Stamp();
+        }
+
+        void sr_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+                switch (e.Result.Text)
+                {
+                    case "Show the log":
+                        {
+                            show_TheLog();
+                            break;
+                        }
+                    case "Input string":
+                        {
+                            input_String();
+                            break;
+                        }
+                    case "Abord operation":
+                        {
+                            abord_InputOperation();
+                            break;
+                        }
+                    case "Change username":
+                        {
+                            change_Username();
+                            break;
+                        }
+                    case "Enable reply":
+                        {
+                            speak_EnableDisable();
+                            break;
+                        }
+                    case "Under the hood":
+                        {
+                            settings_Function();
+                            break;
+                        }
+                    case "Show the time":
+                        {
+                            say_Time();
+                            break;
+                        }
+                    case "Listen again":
+                        {
+                            start_Listening();
+                            break;
+                        }
+                    case "Stop listening":
+                        {
+                            stop_Listening();
+                            break;
+                        }
+                    case "Get my location":
+                        {
+                            get_Location();
+                            break;
+                        }
+                    case "Clear selected":
+                        {
+                            clear_Selected();
+                            break;
+                        }
+                    case "Advanced locker":
+                        {
+                            advanced_Locker();
+                            break;
+                        }
+                    case "Disable locker":
+                        {
+                            switch (lock_state)
+                            {
+                                case 0:
+                                    {
+                                        no_LockerEnabled();
+                                        break;
+                                    }
+                                case 1:
+                                    {
+                                        basic_Locker_Disable();
+                                        break;
+                                    }
+                                case 2:
+                                    {
+                                        advanced_Locker_Disable();
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    case "Basic locker":
+                        {
+                            basic_Locker();
+                            break;
+                        }
+                    case "Redemption":
+                        {
+                            history_Text("Accessing security setting...");
+                            enable_SecurityGrammar();
+                            speak("Accessing security settings.");
+                            break;
+                        }
+                    case "Clean the log":
+                        {
+                            clean_TheLog();
+                            break;
+                        }
+                    case "Clear content":
+                        {
+                            clear_Content();
+                            break;
+                        }
+                    case "Read selected":
+                        {
+                            read_Selected();
+                            break;
+                        }
+                    case "Read it all":
+                        {
+                            read_Everything();
+                            break;
+                        }
+
+                    case "Open disc tray":
+                        {
+                            history_Text("Opening disk tray...");
+                            open_CD_Tray();
+                            speak("Ready to load.");
+                            break;
+                        }
+                    case "Show textbox":
+                        {
+                            enable_TextboxGrammar();
+                            history_Text("Opening TextBox");
+                            show_TextBox();
+                            speak("textbox commands are now available.");
+                            break;
+                        }
+                    case "Hide textbox":
+                        {
+                            enable_BasicGrammar();
+                            speak("Back to basic commands");
+                            break;
+                        }
+                    case "Advanced commands":
+                        {
+                            history_Text("Accessing advanced commands...");
+                            enable_AdvancedGrammar();
+                            speak("Advanced commands mode activated.");
+                            break;
+                        }
+                    case "Basic commands":
+                        {
+                            history_Text("Accessing basic commands...");
+                            enable_BasicGrammar();
+                            speak("Basic commands available");
+                            break;
+                        }
+                    case "Take a break":
+                        {
+                            exit_Application();
+                            break;
+                        }
+                    case "Hide commands pannel":
+                        {
+                            hide_Commands_Pannel();
+                            break;
+                        }
+                    case "Show commands pannel":
+                        {
+                            show_Commands_Pannel();
+                            break;
+                        }
+                    case "Show networks":
+                        {
+                            history_Text("Accessing networks list...");
+                            show_Networks();
+                            break;
+                        }
+                }
+        }
+
+        /*============================================*/
+        /*FUNCTIONS*/
+        /*GRAMMAR FUNCTIONS*/
+        public void enable_AdvancedGrammar()
+        {
+            buttons_Advanced_ButtonsText();
+            buttons_Advanced_ButtonsLoad();
+            shodan_state = 2;/*PURPLE COLOR*/
+            richTextBox1.ForeColor = Color.MediumOrchid;
+            load_AdvancedCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_BasicGrammar()
+        {
+            buttons_Basic_ButtonsText();
+            buttons_Basic_ButtonsLoad();
+            shodan_state = 0;/*GREEN COLOR*/
+            richTextBox1.ForeColor = Color.SpringGreen;
+            load_BasicCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+            if (richTextBox2.Visible == true)
+                richTextBox2.Visible = false;
+        }
+
+        public void enable_TextboxGrammar()
+        {
+            buttons_Textbox_ButtonsLoad();
+            buttons_Textbox_ButtonsText();
+            shodan_state = 1;/*YELLOW COLOR*/
+            richTextBox1.ForeColor = Color.Gold;
+            load_TextBoxCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_GamesGrammar()
+        {
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_SecurityGrammar()
+        {
+            buttons_Security_ButtonsLoad();
+            buttons_Security_ButtonsText();
+            shodan_state = 4;/*CYAN*/
+            richTextBox1.ForeColor = Color.Cyan;
+            load_SecurityCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_NotListeningGrammar()
+        {
+            buttons_NotListening_ButtonsLoad();
+            buttons_NotListening_ButtonsText();
+            shodan_state = 3;/*RED*/
+            richTextBox1.ForeColor = Color.Red;
+            load_NotListeningCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_SettingsGrammar()
+        {
+            buttons_Settings_ButtonsLoad();
+            buttons_Settings_ButtonsText();
+            shodan_state = 5;/*White*/
+            richTextBox1.ForeColor = Color.White;
+            load_SettingsCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = false;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void enable_StringGrammar()
+        {
+            buttons_String_ButtonsLoad();
+            buttons_String_ButtonsText();
+            shodan_state = 5;/*White*/
+            richTextBox1.ForeColor = Color.White;
+            load_StringCommands_List();
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_String_Grammar)].Enabled = true;
+            sr.RequestRecognizerUpdate();
+        }
+
+        public void initialize_Grammar()
+        {
+            /*COMENZI BASIC*/
+            Choices comenzibasic = new Choices();
+            comenzibasic.Add(basiccommands);
+            GrammarBuilder GB_BasicCommands = new GrammarBuilder();
+            GB_BasicCommands.Append(comenzibasic);
+            GB_BasicCommands_Grammar = new Grammar(GB_BasicCommands);
+            GB_BasicCommands_Grammar.Name = "GB_BasicCommands_Grammar";
+            /*COMENZI BASIC*/
+
+            /*ADVANCED COMMANDS*/
+            Choices comenziadvanced = new Choices();
+            comenziadvanced.Add(advancedcommands);
+            GrammarBuilder GB_AdvancedCommands = new GrammarBuilder();
+            GB_AdvancedCommands.Append(comenziadvanced);
+            GB_AdvancedCommands_Grammar = new Grammar(GB_AdvancedCommands);
+            GB_AdvancedCommands_Grammar.Name = "GB_AdvancedCommands_Grammar";
+            /*ADVANCED COMMANDS*/
+
+            /*textbox COMMANDS*/
+            Choices comenzitextbox = new Choices();
+            comenzitextbox.Add(textboxcommands);
+            GrammarBuilder GB_TextBoxCommands = new GrammarBuilder();
+            GB_TextBoxCommands.Append(comenzitextbox);
+            GB_TextBoxCommands_Grammar = new Grammar(GB_TextBoxCommands);
+            GB_TextBoxCommands_Grammar.Name = "GB_TextBoxCommands_Grammar";
+            /*textbox COMMANDS*/
+
+            /*GAMES COMMANDS*/
+            Choices comenzigames = new Choices();
+            comenzigames.Add(gamescommands);
+            GrammarBuilder GB_GamesCommands = new GrammarBuilder();
+            GB_GamesCommands.Append(comenzigames);
+            GB_GamesCommands_Grammar = new Grammar(GB_GamesCommands);
+            GB_GamesCommands_Grammar.Name = "GB_GamesCommands_Grammar";
+            /*GAMES COMMANDS*/
+
+            /*SECURITY COMMANDS*/
+            Choices comenzisecurity = new Choices();
+            comenzisecurity.Add(securitycommands);
+            GrammarBuilder GB_SecurityCommands = new GrammarBuilder();
+            GB_SecurityCommands.Append(comenzisecurity);
+            GB_SecurityCommands_Grammar = new Grammar(GB_SecurityCommands);
+            GB_SecurityCommands_Grammar.Name = "GB_SecurityCommands_Grammar";
+            /*SECURITY COMMANDS*/
+
+            /*NOT LISTENING COMMANDS*/
+            Choices comenzinotlistening = new Choices();
+            comenzinotlistening.Add(notlisteningcommands);
+            GrammarBuilder GB_NotListening = new GrammarBuilder();
+            GB_NotListening.Append(comenzinotlistening);
+            GB_NotListening_Grammar = new Grammar(GB_NotListening);
+            GB_NotListening_Grammar.Name = "GB_NotListening_Grammar";
+            /*NOT LISTENING COMMANDS*/
+
+            /*SETTINGS COMMANDS*/
+            Choices comenzisettings = new Choices();
+            comenzisettings.Add(settingscommands);
+            GrammarBuilder GB_Settings = new GrammarBuilder();
+            GB_Settings.Append(comenzisettings);
+            GB_Settings_Grammar = new Grammar(GB_Settings);
+            GB_Settings_Grammar.Name = "GB_Settings_Grammar";
+            /*SETTINGS COMMANDS*/
+
+            /*STRING COMMANDS*/
+            Choices comenzistring = new Choices();
+            comenzistring.Add(stringcommands);
+            GrammarBuilder GB_String = new GrammarBuilder();
+            GB_String.Append(comenzistring);
+            GB_String_Grammar = new Grammar(GB_String);
+            GB_String_Grammar.Name = "GB_String_Grammar";
+            /*STRING COMMANDS*/
+
+            sr.LoadGrammar(GB_BasicCommands_Grammar);
+            sr.LoadGrammar(GB_AdvancedCommands_Grammar);
+            sr.LoadGrammar(GB_TextBoxCommands_Grammar);
+            sr.LoadGrammar(GB_GamesCommands_Grammar);
+            sr.LoadGrammar(GB_SecurityCommands_Grammar);
+            sr.LoadGrammar(GB_NotListening_Grammar);
+            sr.LoadGrammar(GB_Settings_Grammar);
+            sr.LoadGrammar(GB_String_Grammar);
+
+            sr.Grammars[sr.Grammars.IndexOf(GB_BasicCommands_Grammar)].Enabled = true;
+            sr.Grammars[sr.Grammars.IndexOf(GB_AdvancedCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_TextBoxCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_GamesCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_SecurityCommands_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_NotListening_Grammar)].Enabled = false;
+            sr.Grammars[sr.Grammars.IndexOf(GB_Settings_Grammar)].Enabled = false;
+
+            sr.SetInputToDefaultAudioDevice();
+            sr.SpeechRecognized += sr_SpeechRecognized;
+            sr.RecognizeAsync(RecognizeMode.Multiple);/*pornire ascultare*/
+        }
+        /*GRAMMAR FUNCTIONS*/
+
+        /*SHODAN STATE FUNCTIONS*/
+        public void shodan_State_Cyan()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.s5;
+                        break;
+                    }
+            }
+        }
+
+        public void shodan_State_Green()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.g5;
+                        break;
+                    }
+            }
+        }
+
+        public void shodan_State_Purple()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.m5;
+                        break;
+                    }
+            }
+        }
+
+        public void shodan_State_Red()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.red5;
+                        break;
+                    }
+            }
+        }
+
+        public void shodan_State_Yellow()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.y5;
+                        break;
+                    }
+            }
+        }
+
+        public void shodan_State_White()
+        {
+            switch (timer1Tiker)
+            {
+                case 0:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set0;
+                        break;
+                    }
+                case 1:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set1;
+                        break;
+                    }
+                case 2:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set2;
+                        break;
+                    }
+                case 3:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set3;
+                        break;
+                    }
+                case 4:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set4;
+                        break;
+                    }
+                default:
+                    {
+                        pictureBox1.Image = WindowsFormsApplication1.Properties.Resources.set5;
+                        break;
+                    }
+            }
+        }
+        /*SHODAN STATE FUNCTIONS*/
+
+        /*CASUAL FUNCTIONS*/
+        public void abord_InputOperation()
+        {
+            history_Text("Input string operation aborded.");
+            speak("Procedure aborded.");
+            button1.Visible = false;
+            button15.Visible = false;
+            button16.Visible = false;
+            textBox1.Visible = false;
+            textBox1.Text = string.Empty;
+            enable_SettingsGrammar();
+        }
+
+        public void advanced_Locker()
+        {
+            if (check_IfFileIsEmpty(@"SHodan/Security/password.ipx"))
+            {
+                history_Text("Set up a password first!");
+                speak("In order to access the advanced locker concept, you need to set up a personal password. It is later required to disable the protocol");
+                button1.Text = "Submit";
+                textBox1.Visible = true;
+                button1.Visible = true;
+            }
+            else
+            {
+                switch (lock_state)
+                {
+                    case 0:
+                        {
+                            WindowState = FormWindowState.Maximized;
+                            this.TopMost = true;
+                            write_ToFile(@"Shodan\Security\lock.ipx", "2");
+                            write_ToFile(@"Shodan\Security\security.ipx", "1");
+                            read_Lock_State();
+                            read_Restart_State();
+                            history_Text("Advanced locker protocol has been enabled!");
+                            speak("Advanced locker protocol has been enabled.");
+                            break;
+                        }
+                    case 1:
+                        {
+                            history_Text("Cannot activate advanced locker over basic protocol! <error>");
+                            speak("Cannot activate advanced locker over basic protocol.");
+                            break;
+                        }
+                    case 2:
+                        {
+                            history_Text("Advanced locker protocol is already running! <error>");
+                            speak("Advanced locker protocol is already running.");
+                            break;
+                        }
+                }
+            }
+        }
+
+        public void advanced_Locker_Disable()
+        {
+            speak("Enter the password.");
+            textBox1.Visible = true;
+            button1.Visible = true;
+            button1.Text = "Submit";
+        }
+
+        public void advanced_Locker_PostRestart()
+        {
+            if (restart == 1)
+            {
+                WindowState = FormWindowState.Maximized;
+                this.TopMost = true;
+                write_ToFile(@"Shodan\Security\lock.ipx", "2");
+                write_ToFile(@"Shodan\Security\security.ipx", "1");
+                read_Lock_State();
+                history_Text("Advanced locker protocol has been enabled!");
+                speak("Advanced locker protocol has been enabled.");
+            }
+        }
+
+        public void buttons_Advanced_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = true;
+                button7.Visible = false;
+                button8.Visible = false;
+                button9.Visible = false;
+                button10.Visible = false;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_Advanced_ButtonsText()
+        {
+            button4.Text = "Basic";
+            button5.Text = "Networks";
+            button6.Text = "Location";
+            button7.Text = "N/A";
+            button8.Text = "N/A";
+            button9.Text = "N/A";
+            button10.Text = "N/A";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void buttons_Basic_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = true;
+                button7.Visible = true;
+                button8.Visible = true;
+                button9.Visible = true;
+                button10.Visible = true;
+                button11.Visible = true;
+                button12.Visible = true;
+                button13.Visible = true;
+            }
+        }
+
+        public void buttons_Basic_ButtonsText()
+        {
+            button4.Text = "Advanced";
+            button5.Text = "Redemtion";
+            button6.Text = "Textbox";
+            button7.Text = "Disc tray";
+            button8.Text = "Clean log";
+            button9.Text = "Deaf";
+            button10.Text = "Listen";
+            button11.Text = "Time";
+            button12.Text = "Settings";
+            button13.Text = "Exit";
+        }
+
+        public void buttons_NotListening_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = false;
+                button7.Visible = false;
+                button8.Visible = false;
+                button9.Visible = false;
+                button10.Visible = false;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_NotListening_ButtonsText()
+        {
+            button4.Text = "Listen";
+            button5.Text = "Exit";
+            button6.Text = "N/A";
+            button7.Text = "N/A";
+            button8.Text = "N/A";
+            button9.Text = "N/A";
+            button10.Text = "N/A";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void buttons_Security_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = true;
+                button7.Visible = true;
+                button8.Visible = false;
+                button9.Visible = false;
+                button10.Visible = false;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_Security_ButtonsText()
+        {
+            button4.Text = "Basic";
+            button5.Text = "B. Locker";
+            button6.Text = "A. Locker";
+            button7.Text = "Disable";
+            button8.Text = "N/A";
+            button9.Text = "N/A";
+            button10.Text = "N/A";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void buttons_Settings_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = true;
+                button7.Visible = true;
+                button8.Visible = true;
+                button9.Visible = true;
+                button10.Visible = true;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_Settings_ButtonsText()
+        {
+            button4.Text = "Basic";
+            button5.Text = "E. reply";
+            button6.Text = "D. reply";
+            button7.Text = "Username";
+            button8.Text = "Password";
+            button9.Text = "Show log";
+            button10.Text = "Shutdown";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void buttons_String_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = false;
+                button5.Visible = false;
+                button6.Visible = false;
+                button7.Visible = false;
+                button8.Visible = false;
+                button9.Visible = false;
+                button10.Visible = false;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_String_ButtonsText()
+        {
+            button4.Text = "N/A";
+            button5.Text = "N/A";
+            button6.Text = "N/A";
+            button7.Text = "N/A";
+            button8.Text = "N/A";
+            button9.Text = "N/A";
+            button10.Text = "N/A";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void buttons_Textbox_ButtonsLoad()
+        {
+            if (button_visible)
+            {
+                button2.Visible = true;
+                button3.Visible = true;
+                button4.Visible = true;
+                button5.Visible = true;
+                button6.Visible = true;
+                button7.Visible = true;
+                button8.Visible = true;
+                button9.Visible = true;
+                button10.Visible = false;
+                button11.Visible = false;
+                button12.Visible = false;
+                button13.Visible = false;
+            }
+        }
+
+        public void buttons_Textbox_ButtonsText()
+        {
+            button4.Text = "Basic";
+            button5.Text = "Read all";
+            button6.Text = "R. selected";
+            button7.Text = "Clear";
+            button8.Text = "C. Selected";
+            button9.Text = "Hide box";
+            button10.Text = "N/A";
+            button11.Text = "N/A";
+            button12.Text = "N/A";
+            button13.Text = "N/A";
+        }
+
+        public void basic_Locker()
+        {
+            switch (lock_state)
+            {
+                case 0:
+                    {
+                        WindowState = FormWindowState.Maximized;
+                        this.TopMost = true;
+                        write_ToFile(@"Shodan\Security\lock.ipx", "1");
+                        read_Lock_State();
+                        history_Text("Basic locker protocol has been enabled!");
+                        speak("Basic locker enabled.");
+                        break;
+                    }
+                case 1:
+                    {
+                        history_Text("Basic locker protocol is already running! <error>");
+                        speak("Basic locker protocol is already running.");
+                        break;
+                    }
+                case 2:
+                    {
+                        history_Text("Cannot activate basic locker over andvaced protocol! <error>");
+                        speak("Cannot activate basic locker over advanced protocol.");
+                        break;
+                    }
+            }
+            
+        }
+
+        public void basic_Locker_Disable()
+        {
+            WindowState = FormWindowState.Normal;
+            this.TopMost = false;
+            write_ToFile(@"Shodan\Security\lock.ipx", "0");
+            read_Lock_State();
+            history_Text("Basic locker protocol has been disabled!");
+            speak("Basic locker disabled.");
+        }
+
+        public void change_Username()
+        {
+            enable_StringGrammar();
+            input_method = "username";
+            textBox1.UseSystemPasswordChar = false;
+            textBox1.Visible = true;
+            textBox1.Text = "<write username here>";
+            button15.Visible = true;
+            button16.Visible = true;
+            if (!firsttime)
+            {
+                history_Text("Attempting to change username...");
+                speak("Write down your username then click on input string button, or just say so.");
+            }
+        }
+
+        public Boolean check_IfFileExists(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public Boolean check_IfFileIsEmpty(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                if (new FileInfo(filePath).Length == 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public void clean_TheLog()
+        {
+            history_Text("Cleaning log...");
+            richTextBox3.Text = String.Empty;
+            speak("History pannel is now cleared");
+        }
+
+        public void clear_Content()
+        {
+            if (!String.IsNullOrEmpty(richTextBox2.Text))
+            {
+                history_Text("Clearing textbox's content...");
+                richTextBox2.Text = String.Empty;
+                speak("Textbox has been cleared.");
+            }
+            else
+            {
+                history_Text("Procedure failed!  <textbox is already empty>");
+                speak("Textbox is already empty.");
+            }
+        }
+
+        public void clear_Selected()
+        {
+            if (!String.IsNullOrEmpty(richTextBox2.SelectedText))
+            {
+                history_Text("Clearing selected content...");
+                richTextBox2.SelectedText = String.Empty;
+                speak("Selected content has been cleared.");
+            }
+            else
+            {
+                history_Text("Procedure failed!  <no text selected>");
+                speak("There is no text selected.");
+            }
+        }
+
+        private void create_Shodan_Directories()
+        {
+            create_Directory("Shodan");
+            create_Directory(@"Shodan\Network");
+            create_Directory(@"Shodan\User");
+            create_Directory(@"Shodan\Logs");
+            create_Directory(@"Shodan\Security");
+            create_Directory(@"Shodan\Settings"); 
+            create_Directory(@"Shodan\Games");
+            wait_Seconds(1);
+        }
+
+        private void create_Shodan_Files()
+        {
+            if (!File.Exists(@"Shodan\Network\network.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Network\network.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\Network\location.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Network\location.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\Security\security.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Security\security.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\User\user.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\User\user.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\Security\password.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Security\password.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\Logs\logs.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Logs\logs.ipx", FileMode.Create);
+                fs.Close();
+            }
+            if (!File.Exists(@"Shodan\Security\lock.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Security\lock.ipx", FileMode.Create);
+                fs.Close();
+            }
+        }
+
+        private void create_Directory(string name)
+        {
+            string path = name;
+            try
+            {
+                // Determine whether the directory exists. 
+                if (Directory.Exists(path))
+                {
+                    return;
+                }
+
+
+                // Try to create the directory.
+                DirectoryInfo di = Directory.CreateDirectory(path);
+                Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(path));
+
+                /*Enable full control*/
+                FileSystemAccessRule fsar = new FileSystemAccessRule("Users", FileSystemRights.FullControl, AccessControlType.Allow);
+                DirectorySecurity ds = null;
+                ds = di.GetAccessControl();
+                ds.AddAccessRule(fsar);
+                di.SetAccessControl(ds);
+                /*Enable full control*/
+
+                // Delete the directory.
+                /*di.Delete();
+                Console.WriteLine("The directory was deleted successfully.");*/
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("The process failed: {0}", e.ToString());
+            } 
+        }
+
+        public void error_Message()
+        {
+            sr.RecognizeAsyncStop();
+            pb.AppendText("Error");
+            replica.Speak(pb);
+            pb.ClearContent();
+            sr.RecognizeAsync(RecognizeMode.Multiple);
+            ready_Message();
+
+        }
+
+        public void exit_Application()
+        {
+            forcedclosed = false;
+            history_Text("Application closed.");
+            speak(byereply[rnd.Next(0, byereply.Length)]);
+            Application.Exit();
+        }
+
+        public void get_Location()
+        {
+            sr.RecognizeAsyncStop();
+            pb.AppendText("Determining location protocol engaged.");
+            replica.Speak(pb);
+            pb.ClearContent();
+            sr.RecognizeAsync(RecognizeMode.Multiple);
+            if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            {
+                history_Text("Location protocol engaged. <succed>");
+                WebClient client = new WebClient();
+                string downloadString = client.DownloadString("http://mylocation.org/");
+                write_ToFile(@"Shodan/Network/location.ipx", downloadString);
+                string country = "Not asigned";
+                string city = "Not asigned";
+                using (TextReader reader = File.OpenText(@"Shodan/Network/location.ipx"))
+                {
+                    while (country != "         <td>Country</td>")
+                    {
+                        country = reader.ReadLine();
+                    }
+                    country = reader.ReadLine();
+                    while (city != "         <td>City</td>")
+                    {
+                        city = reader.ReadLine();
+                    }
+                    city = reader.ReadLine();
+                }
+                country = country.Replace("         <td>", "");
+                country = country.Replace("</td>", "");
+                city = city.Replace("         <td>", "");
+                city = city.Replace("</td>", "");
+                label1.Text = country + "city = " + city;
+                speak("Location detected. Country: " + country + ". City: " + city + ". Data is obtained according to mylocation.org.");
+            }
+            else
+            {
+                history_Text("Location protocol engaged. <failed>");
+                speak("Location detect protocol has failed. A functioning internet connection is required in order to proceed.");
+            }
+        }
+
+        public void hello_Function()
+        {
+            string currenttime = DateTime.Now.ToString("HH");
+            int j;
+            Int32.TryParse(currenttime, out j);
+            if (j > 5 && j<= 10)
+            {
+                speak("Good morning " + username + ". " + readyreply[rnd.Next(0,readyreply.Length)]);
+            }
+            else if (j > 10 && j <= 19)
+            {
+                speak("Hello " + username + ". " + readyreply[rnd.Next(0, readyreply.Length)]);
+            }
+            else if (j > 19 || (j >= 0 && j < 2))
+            {
+                speak("Good evening " + username + ". " + readyreply[rnd.Next(0, readyreply.Length)]);
+            }
+            else
+            {
+                speak("Hey nightwolf. Don't you think it is time to go to bed?");
+            }
+        }
+
+        public void hide_Commands_Pannel()
+        {
+            if (richTextBox1.Visible == true)
+            {
+                history_Text("Hiding commands list...");
+                richTextBox1.Visible = false;
+                speak("Commads pannel is hidden.");
+            }
+            else
+            {
+                history_Text("Commands list is already hidden! <error>");
+                speak("Commads pannel is already hidden.");
+            }
+        }
+
+        public void history_Text(string text)
+        {
+            richTextBox3.Text += " " + text + "\t\t\t" + DateTime.Now.ToString("[HH:mm:ss]") + "\n";
+            richTextBox3.SelectionStart = richTextBox3.Text.Length;
+            richTextBox3.ScrollToCaret();
+            using (StreamWriter sw = File.AppendText(@"Shodan/Logs/logs.ipx"))
+            {
+                sw.WriteLine(text + "\t\t\t" + DateTime.Now.ToString("[HH:mm:ss]") + "\n");
+            }
+        }
+
+        public void input_String()
+        {
+            switch (input_method)
+            {
+                case "username":
+                    {
+                        input_StringUsername();
+                        break;
+                    }
+                case "password":
+                    {
+                        break;
+                    }
+            }
+        }
+
+        public void input_StringUsername()
+        {
+            if (!String.IsNullOrEmpty(textBox1.Text) && textBox1.Text != "<write username here>")
+            {
+                username = textBox1.Text;
+                write_ToFile(@"Shodan/User/user.ipx", username);
+                textBox1.Visible = false;
+                textBox1.UseSystemPasswordChar = true;
+                button15.Visible = false;
+                button16.Visible = false;
+                if (firsttime == true)
+                {
+                    speak("Hello " + username + ". I am glad to meet you.");
+                    history_Text("First user input <" + username + ">");
+                    speak("In order to check available commands, say show commands pannel, or click the brown button to use functions on click");
+                    listening = true;
+                    button14.Visible = true;
+                }
+                else
+                {
+                    history_Text("Username changed to \"" + username + "\".");
+                    speak("You have successfully changed your username to " + username + ".");
+                }
+                enable_SettingsGrammar();
+            }
+            else
+            {
+                history_Text("Empty string username input. <error>");
+                speak("Username can't be an empty string.");
+            }
+        }
+
+        public void load_AdvancedCommands_List()
+        {
+            richTextBox1.Text = "\n        Advanced Commands:\n\n";
+            for (int i = 0; i < advancedcommands.Length; i++)
+                richTextBox1.Text += "   " + advancedcommands[i] + "\n";
+        }
+
+        public void load_BasicCommands_List()
+        {
+            richTextBox1.Text = "\n           Basic Commands:\n\n";
+            for (int i = 0; i < basiccommands.Length; i++)
+            {
+                richTextBox1.Text += "   " + basiccommands[i] + "\n";
+            }
+        }
+
+        public void load_NotListeningCommands_List()
+        {
+            richTextBox1.Text = "\n        Security Commands:\n\n";
+            for (int i = 0; i < notlisteningcommands.Length; i++)
+                richTextBox1.Text += "   " + notlisteningcommands[i] + "\n";
+        }
+
+        public void load_SecurityCommands_List()
+        {
+            richTextBox1.Text = "\n        Security Commands:\n\n";
+            for (int i = 0; i < securitycommands.Length; i++)
+                richTextBox1.Text += "   " + securitycommands[i] + "\n";
+        }
+
+        public void load_SettingsCommands_List()
+        {
+            richTextBox1.Text = "\n        Settings Commands:\n\n";
+            for (int i = 0; i < settingscommands.Length; i++)
+                richTextBox1.Text += "   " + settingscommands[i] + "\n";
+        }
+
+        public void load_StringCommands_List()
+        {
+            richTextBox1.Text = "\n        String Commands:\n\n";
+            for (int i = 0; i < stringcommands.Length; i++)
+                richTextBox1.Text += "   " + stringcommands[i] + "\n";
+        }
+
+        public void load_TextBoxCommands_List()
+        {
+            richTextBox1.Text = "\n        TextBox Commands:\n\n";
+            for (int i = 0; i < textboxcommands.Length; i++)
+                richTextBox1.Text += "   " + textboxcommands[i] + "\n";
+        }
+
+        public void log_ForcedClose()
+        {
+            if (forcedclosed)
+            {
+                history_Text("Forced closing detected.");
+            }
+        }
+
+        public void log_Stamp()
+        {
+            if (!firsttime)
+            {
+                using (StreamWriter sw = File.AppendText(@"Shodan/Logs/logs.ipx"))
+                {
+                    sw.WriteLine("");
+                    sw.WriteLine("================================================================================");
+                    sw.WriteLine("");
+                    sw.WriteLine("New log session");
+                    sw.WriteLine("");
+                    sw.WriteLine("Date: " + DateTime.Now.ToString("dd/MM/yyyy"));
+                    sw.WriteLine("Time: " + DateTime.Now.ToString("[HH:mm:ss]"));
+                    sw.WriteLine("User: " + username);
+                    sw.WriteLine("Commands log:");
+                }
+            }
+            else
+            {
+                using (StreamWriter sw = File.AppendText(@"Shodan/Logs/logs.ipx"))
+                {
+                    sw.WriteLine("First log session");
+                    sw.WriteLine("");
+                    sw.WriteLine("Date: " + DateTime.Now.ToString("dd/MM/yyyy"));
+                    sw.WriteLine("Time: " + DateTime.Now.ToString("[HH:mm:ss]"));
+                    sw.WriteLine("Commands log:");
+                }
+            }
+        }
+
+        public void no_LockerEnabled()
+        {
+            history_Text("Locker disabling failed. Reason: no locker engaged. <error>");
+            speak("There is not any locker protocol engaged.");
+        }
+
+        public void open_CD_Tray()
+        {
+            CDTray.SendCDCommand("set CDAudio door open");
+        }
+
+        public void read_DataInt_FromFile(string filePath, int integer)
+        {
+            using (TextReader reader = File.OpenText(filePath))
+            {
+                integer = int.Parse(reader.ReadLine());
+            }
+        }
+
+        public void read_Everything()
+        {
+            if (!String.IsNullOrEmpty(richTextBox2.Text))
+            {
+                bool hadToEnable = false;
+                if (!speaking_enableb)
+                {
+                    speaking_enableb = true;
+                    hadToEnable = true;
+                }
+                history_Text("Reading whole text...");
+                speak(richTextBox2.Text);
+                if (hadToEnable)
+                {
+                    speaking_enableb = false;
+                }
+            }
+            else
+            {
+                history_Text("Reading whole text attempt failed! Reason: Textbox is empty. <error>");
+                speak("Textbox is empty");
+            }
+        }
+
+        public void read_Lock_State()
+        {
+            using (TextReader reader = File.OpenText(@"Shodan\Security\lock.ipx"))
+            {
+                lock_state = int.Parse(reader.ReadLine());
+            }
+        }
+
+        public void read_Restart_State()
+        {
+            using (TextReader reader = File.OpenText(@"Shodan\Security\security.ipx"))
+            {
+                restart = int.Parse(reader.ReadLine());
+            }
+        }
+
+        public void read_Selected()
+        {
+            if (!String.IsNullOrEmpty(richTextBox2.Text))
+            {
+                bool hadToEnable = false;
+                if (!speaking_enableb)
+                {
+                    speaking_enableb = true;
+                    hadToEnable = true;
+                }
+                history_Text("Reading selected text...");
+                speak(richTextBox2.SelectedText);
+                if (hadToEnable)
+                {
+                    speaking_enableb = false;
+                }
+            }
+            else
+            {
+                history_Text("Reading selected text attempt failed! Reason: No text selected. <error>");
+                speak("There is no text selected.");
+            }
+        }
+
+        public void restart_Apllication()
+        {
+            if (restart == 1)
+            {
+                Application.Restart();
+            }
+        }
+
+        public void read_Username()
+        {
+            using (TextReader reader = File.OpenText(@"Shodan/User/user.ipx"))
+            {
+                username = reader.ReadLine();
+            }
+        }
+
+        public void say_Time()
+        {
+            history_Text("Time is");
+            speak("Time is " + DateTime.Now.ToString("hh") + " and " + DateTime.Now.ToString("mm") + " minutes " + DateTime.Now.ToString("tt"));
+        }
+
+        public void settings_Function()
+        {
+            enable_SettingsGrammar();
+            history_Text("Accessing settings pannel...");
+            speak("Accessing settings pannel.");
+        }
+
+        public void show_Commands_Pannel()
+        {
+            if (richTextBox1.Visible == false)
+            {
+                history_Text("Showing commands list...");
+                richTextBox1.Visible = true;
+                speak("Commands pannel is displayed.");
+            }
+            else
+            {
+                history_Text("Commands list is already shown! <error>");
+                speak("Commands pannel is already shown.");
+            }
+        }
+
+        public void show_Networks()
+        {
+            string availablenetworks;
+            if (!File.Exists(@"Shodan\Network\network.ipx"))
+            {
+                FileStream fs = new FileStream(@"Shodan\Network\network.ipx", FileMode.Create);
+                fs.Close();
+            }
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Maximized;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C title ~Shodan~     WiFi Networks     ~Shodan~&color a&cls&netsh wlan show network mode=bssid&pause";
+            process.StartInfo = startInfo;
+            process.Start();
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C color a&cls&netsh wlan show network mode=bssid >\"Shodan\\Network\\network.ipx\"&pause";
+            process.StartInfo = startInfo;
+            process.Start();
+            System.Threading.Thread.Sleep(1000);
+            if (File.Exists(@"Shodan\Network\network.ipx"))
+            {
+                StreamReader readtext = new StreamReader(@"Shodan\Network\network.ipx");
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                sr.RecognizeAsyncStop();
+                pb.AppendText("Scan complete. " + availablenetworks + "The most powerfull network seems to be ");
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                pb.AppendText(availablenetworks + ". Power ");
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                availablenetworks = readtext.ReadLine();
+                pb.AppendText(availablenetworks + ".");
+                replica.Speak(pb);
+                readtext.Close();
+                pb.ClearContent();
+                sr.RecognizeAsync(RecognizeMode.Multiple);
+            }
+            else
+            {
+                sr.RecognizeAsyncStop();
+                pb.AppendText("An error ocurred while reading data.");
+                replica.Speak(pb);
+                pb.ClearContent();
+                sr.RecognizeAsync(RecognizeMode.Multiple);
+            }
+            ready_Message();
+        }
+
+        public void show_TextBox()
+        {
+            if (richTextBox2.Visible == false)
+                richTextBox2.Visible = true;
+        }
+
+        public void show_TheLog()
+        {
+            history_Text("Accessing log data...");
+            speak("Accessing log data...");
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Maximized;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C title ~Shodan~     Shodan log registry     ~Shodan~&color a&cls&type Shodan\\Logs\\logs.ipx&pause";
+            process.StartInfo = startInfo;
+            process.Start();
+        }
+
+        public void show_WebBrowser()
+        {
+            this.WindowState = FormWindowState.Minimized;
+            PopupWindow popup = new PopupWindow(webBrowser1);
+            popup.Show(new Point(800, 100));
+        }
+
+        public void speak(string reply)
+        {
+            if (speaking_enableb)
+            {
+                sr.RecognizeAsyncStop();
+                pb.AppendText(reply);
+                replica.Speak(pb);
+                pb.ClearContent();
+                sr.RecognizeAsync(RecognizeMode.Multiple);
+            }
+            else
+            {
+                System.Threading.Thread.Sleep(200);
+            }
+            ready_Message();
+        }
+
+        public void speak_EnableDisable()
+        {
+            if (speaking_enableb)
+            {
+                history_Text("Replies desactivated.");
+                speak("Replies desactivated.");
+                speaking_enableb = false;
+            }
+            else
+            {
+                speaking_enableb = true;
+                history_Text("Replies resactivated.");
+                speak("Replies reactivated.");
+            }
+        }
+
+        public void start_Timer1()
+        {
+            timer1.Interval = timer1_interval;
+            timer1.Start();
+        }
+
+        public void start_Listening()
+        {
+            if (listening)
+            {
+                history_Text("Listening algorithm already functioning. <error>");
+                speak("I am already listening.");
+            }
+            else
+            {
+                enable_BasicGrammar();
+                shodan_state = 0;
+                listening = true;
+                history_Text("Listening command available again.");
+                speak("I am listening again.");
+            }
+        }
+
+        public void stop_Listening()
+        {
+            if (listening)
+            {
+                enable_NotListeningGrammar();
+                shodan_state = 3;
+                listening = false;
+                history_Text("Stopped listening.");
+                sr.RecognizeAsyncStop();
+                pb.AppendText("Ok.");
+                replica.Speak(pb);
+                pb.ClearContent();
+                sr.RecognizeAsync(RecognizeMode.Multiple);
+                history_Text("Only available command: \"Listen again!\"");
+            }
+            else
+            {
+                history_Text("Listening algorithm already disabled. <error>");
+                speak("Listening algorithm already disabled.");
+            }
+        }
+
+        public void turn_OFF_Monitor()
+        {
+            SetMonitorState(MonitorState.OFF);
+        }
+
+        public void turn_ON_Monitor()
+        {
+            SetMonitorState(MonitorState.ON);
+            SendKeys.Send("ESC");
+        }
+        public void wait_Seconds(int n)
+        {
+            n *= 1000;
+            System.Threading.Thread.Sleep(n);
+        }
+
+        public void write_ToFile(string filePath, string textToWrite)
+        {
+            if (File.Exists(filePath))
+            {
+                // Write the string to a file.
+                System.IO.StreamWriter file = new System.IO.StreamWriter(filePath);
+                file.WriteLine(textToWrite);
+
+                // Close file after done.
+                file.Close();
+            }
+        }
+
+        public void ready_Message()
+        {
+            richTextBox3.Text += "Ready to receive a new command!\n";
+            richTextBox3.SelectionStart = richTextBox3.Text.Length;
+            richTextBox3.ScrollToCaret();
+        }
+
+        public void unzip_Archive()
+        {
+        }
+
+        public void zip_Archive()
+        {
+        }
+
+        int timer1_interval = 180;
+        int timer1Tiker = 0;
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            label1.Text = shodan_state.ToString();
+            timer1Tiker++;
+            if (timer1Tiker == 5)
+                timer1Tiker = 0;
+            switch (shodan_state)
+            {
+                case 0:
+                    {
+                        shodan_State_Green();
+                        break;
+                    }
+                case 1:
+                    {
+                        shodan_State_Yellow();
+                        break;
+                    }
+                case 2:
+                    {
+                        shodan_State_Purple();
+                        break;
+                    }
+                case 3:
+                    {
+                        shodan_State_Red();
+                        break;
+                    }
+                case 4:
+                    {
+                        shodan_State_Cyan();
+                        break;
+                    }
+                case 5:
+                    {
+                        shodan_State_White();
+                        break;
+                    }
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            log_ForcedClose();
+            restart_Apllication();
+        }
+
+        /*BUTTONS FUNCTIONS*/
+        private void all_Buttons_Invisible()
+        {
+            button2.Visible = false;
+            button3.Visible = false;
+            button4.Visible = false;
+            button5.Visible = false;
+            button6.Visible = false;
+            button7.Visible = false;
+            button8.Visible = false;
+            button9.Visible = false;
+            button10.Visible = false;
+            button11.Visible = false;
+            button12.Visible = false;
+            button13.Visible = false;
+        }
+
+        int submitcounter = 0;
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (lock_state == 2)
+            {   
+                using (TextReader reader = File.OpenText(@"Shodan/Security/password.ipx"))
+                {
+                    password = reader.ReadLine();
+                }
+                if (textBox1.Text == password)
+                {
+                    WindowState = FormWindowState.Normal;
+                    this.TopMost = false;
+                    write_ToFile(@"Shodan\Security\lock.ipx", "0");
+                    write_ToFile(@"Shodan\Security\security.ipx", "0");
+                    read_Restart_State();
+                    history_Text("Advanced locker protocol has been disabled!");
+                    speak("Advanced locker protocol has been disabled.");
+                    button1.Visible = false;
+                    textBox1.Visible = false;
+                    textBox1.Text = string.Empty;
+                    read_Lock_State();
+                }
+                else
+                {
+                    speak("Incorrect password. Try again.");
+                    textBox1.Text = string.Empty;
+                }
+            }
+            else
+                if (lock_state == 1)
+                {
+
+                }
+                else
+            {
+                if (submitcounter == 0)
+                {
+                    password = textBox1.Text;
+                    submitcounter++;
+                    textBox1.Text = string.Empty;
+                    speak("Confirm your password.");
+                }
+                else
+                {
+                    if (textBox1.Text == password)
+                    {
+                        write_ToFile(@"Shodan/Security/password.ipx", password);
+                        speak("Password registered successfully.");
+                        textBox1.Text = string.Empty;
+                        textBox1.Visible = false;
+                        button1.Visible = false;
+                    }
+                    else
+                    {
+                        speak("Password does not match. Try again.");
+                        textBox1.Text = string.Empty;
+                    }
+                    submitcounter = 0;
+                }
+            }
+        }
+
+        private void button14_Click(object sender, EventArgs e)
+        {
+            buttons_ButtonFunctions_ShowHide();
+        }
+
+        private void buttons_ButtonFunctions_ShowHide()
+        {
+            if (button_visible == true)
+            {
+                button_visible = false;
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            button2.Visible = false;
+                            button3.Visible = false;
+                            button4.Visible = false;
+                            button5.Visible = false;
+                            button6.Visible = false;
+                            button7.Visible = false;
+                            button8.Visible = false;
+                            button9.Visible = false;
+                            button10.Visible = false;
+                            button11.Visible = false;
+                            button12.Visible = false;
+                            button13.Visible = false;
+                            break;
+                        }
+                    case 1:
+                        {
+                            button2.Visible = false;
+                            button3.Visible = false;
+                            button4.Visible = false;
+                            button5.Visible = false;
+                            button6.Visible = false;
+                            button7.Visible = false;
+                            button8.Visible = false;
+                            button9.Visible = false;
+                            break;
+                        }
+                    case 2:
+                        {
+                            button2.Visible = false;
+                            button3.Visible = false;
+                            button4.Visible = false;
+                            button5.Visible = false;
+                            button6.Visible = false;
+                            break;
+                        }
+                    case 3:
+                        {
+                            break;
+                        }
+                    case 4:
+                        {
+                            button2.Visible = false;
+                            button3.Visible = false;
+                            button4.Visible = false;
+                            button5.Visible = false;
+                            button6.Visible = false;
+                            button7.Visible = false;
+                            break;
+                        }
+                    case 5:
+                        {
+                            button2.Visible = false;
+                            button3.Visible = false;
+                            button4.Visible = false;
+                            button5.Visible = false;
+                            button6.Visible = false;
+                            button7.Visible = false;
+                            button8.Visible = false;
+                            button9.Visible = false;
+                            button10.Visible = false;
+                            break;
+                        }
+                }
+            }
+            else
+            {
+                button_visible = true;
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            button2.Visible = true;
+                            button3.Visible = true;
+                            button4.Visible = true;
+                            button5.Visible = true;
+                            button6.Visible = true;
+                            button7.Visible = true;
+                            button8.Visible = true;
+                            button9.Visible = true;
+                            button10.Visible = true;
+                            button11.Visible = true;
+                            button12.Visible = true;
+                            button13.Visible = true;
+                            break;
+                        }
+                    case 1:
+                        {
+                            button2.Visible = true;
+                            button3.Visible = true;
+                            button4.Visible = true;
+                            button5.Visible = true;
+                            button6.Visible = true;
+                            button7.Visible = true;
+                            button8.Visible = true;
+                            button9.Visible = true;
+                            break;
+                        }
+                    case 2:
+                        {
+                            button2.Visible = true;
+                            button3.Visible = true;
+                            button4.Visible = true;
+                            button5.Visible = true;
+                            button6.Visible = true;
+                            break;
+                        }
+                    case 3:
+                        {
+                            break;
+                        }
+                    case 4:
+                        {
+                            button2.Visible = true;
+                            button3.Visible = true;
+                            button4.Visible = true;
+                            button5.Visible = true;
+                            button6.Visible = true;
+                            button7.Visible = true;
+                            break;
+                        }
+                    case 5:
+                        {
+                            button2.Visible = true;
+                            button3.Visible = true;
+                            button4.Visible = true;
+                            button5.Visible = true;
+                            button6.Visible = true;
+                            button7.Visible = true;
+                            button8.Visible = true;
+                            button9.Visible = true;
+                            button10.Visible = true;
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                show_Commands_Pannel();
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                hide_Commands_Pannel();
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            history_Text("Accessing advanced commands...");
+                            enable_AdvancedGrammar();
+                            speak("Advanced commands mode activated.");
+                            break;
+                        }
+                    case 1:
+                        {
+                            history_Text("Accessing basic commands...");
+                            enable_BasicGrammar();
+                            speak("Basic commands available");
+                            break;
+                        }
+                    case 2:
+                        {
+                            history_Text("Accessing basic commands...");
+                            enable_BasicGrammar();
+                            speak("Basic commands available");
+                            break;
+                        }
+                    case 3:
+                        {
+                            start_Listening();
+                            break;
+                        }
+                    case 4:
+                        {
+                            history_Text("Accessing basic commands...");
+                            enable_BasicGrammar();
+                            speak("Basic commands available");
+                            break;
+                        }
+                    case 5:
+                        {
+                            history_Text("Accessing basic commands...");
+                            enable_BasicGrammar();
+                            speak("Basic commands available");
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            history_Text("Accessing security setting...");
+                            enable_SecurityGrammar();
+                            speak("Accessing security settings.");
+                            break;
+                        }
+                    case 1:
+                        {
+                            read_Everything();
+                            break;
+                        }
+                    case 2:
+                        {
+                            history_Text("Accessing networks list...");
+                            show_Networks();
+                            break;
+                        }
+                    case 3:
+                        {
+                            exit_Application();
+                            break;
+                        }
+                    case 4:
+                        {
+                            basic_Locker();
+                            break;
+                        }
+                    case 5:
+                        {
+                            speak_EnableDisable();
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            enable_TextboxGrammar();
+                            history_Text("Opening TextBox");
+                            show_TextBox();
+                            speak("textbox commands are now available.");
+                            break;
+                        }
+                    case 1:
+                        {
+                            read_Selected();
+                            break;
+                        }
+                    case 2:
+                        {
+                            get_Location();
+                            break;
+                        }
+                    case 3:
+                        {
+                            break;
+                        }
+                    case 4:
+                        {
+                            advanced_Locker();
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            history_Text("Opening disk tray...");
+                            open_CD_Tray();
+                            speak("Ready to load.");
+                            break;
+                        }
+                    case 1:
+                        {
+                            clear_Content();
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    case 3:
+                        {
+                            break;
+                        }
+                    case 4:
+                        {
+                            switch (lock_state)
+                            {
+                                case 0:
+                                        {
+                                            no_LockerEnabled();
+                                            break;
+                                        }
+                                case 1:
+                                    {
+                                        basic_Locker_Disable();
+                                        break;
+                                    }
+                                case 2:
+                                    {
+                                        advanced_Locker_Disable();
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    case 5:
+                        {
+                            change_Username();
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            clean_TheLog();
+                            break;
+                        }
+                    case 1:
+                        {
+                            clear_Selected();
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    case 3:
+                        {
+                            break;
+                        }
+                    case 4:
+                        {
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            stop_Listening();
+                            break;
+                        }
+                    case 1:
+                        {
+                            enable_BasicGrammar();
+                            speak("Back to basic commands");
+                            break;
+                        }
+                    case 5:
+                        {
+                            show_TheLog();
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button14_MouseHover(object sender, EventArgs e)
+        {
+            if (button_visible)
+            {
+                textBox2.Visible = true;
+                textBox2.Text = "Disable buttons control";
+            }
+            else
+            {
+                textBox2.Visible = true;
+                textBox2.Text = "Enable buttons control";
+            }
+        }
+
+        private void button14_MouseLeave(object sender, EventArgs e)
+        {
+            textBox2.Visible = false;
+            textBox2.Text = string.Empty;
+        }
+
+        private void button15_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                input_StringUsername();
+            }
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            start_Listening();
+                            break;
+                        }
+                    case 1:
+                        {
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            say_Time();
+                            break;
+                        }
+                    case 1:
+                        {
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button12_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            settings_Function();
+                            break;
+                        }
+                    case 1:
+                        {
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void button13_Click(object sender, EventArgs e)
+        {
+            if (button_enabled)
+            {
+                switch (shodan_state)
+                {
+                    case 0:
+                        {
+                            exit_Application();
+                            break;
+                        }
+                    case 1:
+                        {
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void textBox1_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (textBox1.Text == "<write username here>")
+            {
+                textBox1.Text = string.Empty;
+            }
+        }
+
+        private void button16_Click(object sender, EventArgs e)
+        {
+            abord_InputOperation();
+        }
+
+        private void testBtn_Click(object sender, EventArgs e)
+        {
+            show_WebBrowser();
+        }
+    }
+}

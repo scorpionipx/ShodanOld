@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button onclick="myFunction()">Input</button>
+<script>
+function myFunction() 
+{
+<?php
+$myfile = fopen("empty_html.html", "w") or die("Unable to open file!");
+$txt = "Merge pretenas.";
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+}
+</script>
+</body>
+</html>

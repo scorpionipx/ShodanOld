@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+<?php
+$myfile = fopen("RS_is_machine_online.html", "w") or die("Unable to open file!");
+$txt = "0";
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+ <p>Machine is market as offline!</p>
+</body>
+</html> 

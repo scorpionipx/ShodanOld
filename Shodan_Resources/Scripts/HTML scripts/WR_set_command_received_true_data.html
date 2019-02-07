@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><meta http-equiv="refresh" content="0; url=http://www.scorpionipx.comze.com/READ_submited_data.html" /></head>
+<body>
+<?php
+$myfile = fopen("RS_command_received.html", "w") or die("Unable to open file!");
+$txt = "1";
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+ <p>Command has been sent!</p>
+</body>
+</html> 

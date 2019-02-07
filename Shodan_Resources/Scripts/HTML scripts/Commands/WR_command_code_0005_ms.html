@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<head><meta http-equiv="refresh" content="0; url=http://www.scorpionipx.comze.com/WR_set_command_received_true.html" /></head>
+</head>
+<body>
+<?php
+$myfile = fopen("RS_command_to_execute.html", "w") or die("Unable to open file!");
+$txt = "<!DOCTYPE html>
+<html>
+<body>
+<p>command:0005_ms</P>
+</body>
+</html>";
+fwrite($myfile, $txt);
+fclose($myfile);
+?>
+ <p>Command has been set!</p>
+</body>
+</html> 

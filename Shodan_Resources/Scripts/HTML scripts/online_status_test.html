@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+ <p>Status: </p>
+<?php
+$myfile = fopen("RS_is_machine_online.html", "r") or die("Unable to open file!");
+$status = fgetc($myfile);
+fclose($myfile);
+echo $status
+?>
+</body>
+</html> 

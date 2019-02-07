@@ -1,0 +1,58 @@
+First log session
+
+Date: 28-09-2015
+Time: [02:01:01]
+Commands log:
+ Application closed.                                     [28-09-2015][02:01:26]
+
+================================================================================
+
+New log session
+
+Date: 28-09-2015
+Time: [02:01:30]
+User: User
+Commands log:
+ Accessing settings commands...                                      [02:01:33]
+ Accessing basic commands...                                         [02:01:37]
+ Application closed.                                     [28-09-2015][02:01:40]
+
+================================================================================
+
+New log session
+
+Date: 28-09-2015
+Time: [11:09:16]
+User: User
+Commands log:
+ Accessing settings commands...                                      [11:09:57]
+ Changing username protocol engaged.                                 [11:10:00]
+ First user registered as Dan.                                       [11:10:04]
+ Accessing basic commands...                                         [11:10:10]
+ Accessing advanced commands...                                      [11:10:13]
+ Initializing remote control...                                      [11:10:16]
+ Remote control has been enabled.                                    [11:10:18]
+ Accessing basic commands...                                         [11:10:21]
+ Hidding Shodan...                                                   [11:10:24]
+ Opening link...                                                     [11:11:07]
+ Opening link...                                                     [11:11:36]
+ Volume changed to 30 by a remote device.                            [11:12:09]
+ Internet connection probably lost. M.S.D. <error>                   [11:41:08]
+ Remote control has been disabled.                                   [11:41:08]
+ Showing Shodan...                                                   [11:41:19]
+ Accessing advanced commands...                                      [11:41:21]
+ Vocal commands diabled.                                             [11:41:24]
+ Disableing Shodan's reply...                                        [11:41:30]
+ Initializing remote control...                                      [11:41:36]
+ Internet connection probably lost. M.S.D. <error>                   [11:41:57]
+ Remote control has been enabled.                                    [11:41:57]
+ Application closed by force.                                        [19:22:14]
+
+================================================================================
+
+New log session
+
+Date: 07-02-2019
+Time: [19:22:14]
+User: Dan
+Commands log:
